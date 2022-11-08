@@ -24,8 +24,6 @@ const neptunusAddress =
   "GAM6VCFJLV4FMUTRXSWNK7OMWBXLNOIHHGGM25LOPF36UP7UZ47MNPTN";
 const platformAddress = neptunusAddress;
 
-var market = [];
-
 //if there's any discount NFT in ze future
 //const discountIssuer='';
 //const discountCode='';
@@ -118,7 +116,7 @@ async function fetchLiqpool(assetA, assetB) {
 }
 
 //fetching market detail for a given pair
-async function fetchMarket(assetA, assetB) {
+async function fetchMarket(assetA, assetB, market) {
   let promise_temp = [
     fetchOrderbook(assetA, assetB),
     fetchLiqpool(assetA, assetB),
@@ -274,7 +272,7 @@ function orderbookSend(
 }
 
 //simulating path payment
-function pathSend(path, sourceAmount, type) {
+function pathSend(path, sourceAmount, type, market) {
   //type execute -> return edited the lp and ob,
   //return list : result[0]=source_amount ; result[1]=destination_amount ; result[2]=price
   //type calcPrice -> price
@@ -423,7 +421,7 @@ export async function neptunusCalculate(
   sourceAmount
 ) {
   console.log(sourceAmount)
-  market = [];
+  var market = [];
   //fetching path and parsing it
   console.log(market);
   var pathResponse = await pathServer
@@ -503,7 +501,7 @@ export async function neptunusCalculate(
       //pairsList = fetched asset
       pairsList.push(temp_assets);
       //fetching market details
-      promiseMarket.push(fetchMarket(temp_assets[0], temp_assets[1]));
+      promiseMarket.push(fetchMarket(temp_assets[0], temp_assets[1], market));
     }
   }
 
@@ -514,7 +512,7 @@ export async function neptunusCalculate(
   //choosing the best path each loop
   for (let h = 0; h < loops; h++) {
     //execute pathSend()
-    var temp_result = pathSend(paths[0], loopsAmount, "execute");
+    var temp_result = pathSend(paths[0], loopsAmount, "execute", market);
     //append txDetails with the above result
     var temp_info = new txInfo(
       temp_result.sourceAmount,
@@ -533,7 +531,7 @@ export async function neptunusCalculate(
 
     //recalculate each path price after executing path
     for (let g = 0; g < paths.length; g++) {
-      paths[g].price = pathSend(paths[g], loopsAmount, "price");
+      paths[g].price = pathSend(paths[g], loopsAmount, "price", market);
     }
     //sort paths based on price(most destinationAmount == index 0)
     paths.sort((a, b) => a.price - b.price);
