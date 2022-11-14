@@ -18,17 +18,15 @@ const pathServer = new Server("https://horizon.stellar.org"); //pathfinder horiz
 const server = new Server("https://horizon.stellar.org");
 
 //fee are in bps/0.01% of profit
-const neptunusFee = 800; //10% of profit
-const platformFee = 200;
+//feel free to change it
+const neptunusFee = 400; 
+const platformFee = 100;
+const totalFee = neptunusFee + platformFee;
 const neptunusAddress =
   "GAM6VCFJLV4FMUTRXSWNK7OMWBXLNOIHHGGM25LOPF36UP7UZ47MNPTN";
 const platformAddress = neptunusAddress;
 
-//if there's any discount NFT in ze future
-//const discountIssuer='';
-//const discountCode='';
-//const discount=new Asset(discountCode, discountIssuer);
-
+//ToDo : Wrap tx
 //for storing path details
 let Pathing = class {
   constructor(path, price) {
@@ -418,7 +416,8 @@ async function checkpath(_pathList) {
 export async function neptunusCalculate(
   sourceAsset,
   destinationAsset,
-  sourceAmount
+  sourceAmount,
+  loops=18
 ) {
   console.log(sourceAmount)
   var market = [];
@@ -443,7 +442,6 @@ export async function neptunusCalculate(
     */
   //how many loops
   //more loops are generally more profitable
-  var loops = 48;
   var loopsAmount = round(sourceAmount / loops);
   var leftover = sourceAmount - loopsAmount * loops; //rounding error
 
@@ -575,6 +573,8 @@ export async function neptunusCalculate(
     profitInXLM = 0;
     txDetails = [new txInfo(sourceAmount, destinationAmount, normalPath)];
   }
+  //substracting profit taken from neptunus and platform from destinationAmount
+  destinationAmount = round(destinationAmount * (10000 - totalFee) / 10000);
 
   return {
     sourceAsset: sourceAsset,
@@ -645,14 +645,14 @@ export async function neptunusExecute(
   }
 
   //taking profit for platform
-  if (nept.profitInXLM > 0.04 && platformFee != 0) {
+  if (nept.profitInXLM != 0 && platformFee != 0) {
     transaction.addOperation(
       Operation.pathPaymentStrictSend({
         sendAsset: nept.destinationAsset,
         sendAmount: round((nept.profit * platformFee) / 10000).toString(),
         destAsset: Asset.native(),
         destMin: "0.000001",
-        destination: neptunusAddress,
+        destination: platformAddress,
         path: nept.pathProfit,
       })
     );
